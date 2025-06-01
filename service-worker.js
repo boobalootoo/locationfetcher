@@ -1,12 +1,12 @@
 // Define the cache name, incrementing it for new versions to ensure updates
-const CACHE_NAME = 'geolocation-display-v1';
+const CACHE_NAME = 'geolocation-display-v2'; // Incremented cache version
 
 // List of URLs to cache during installation
-// This includes the main HTML, the manifest, and the Tailwind CSS CDN
+// These paths are now relative to the service worker's scope (e.g., /locationfetcher/)
 const urlsToCache = [
-    './', // Caches the root (index.html)
-    './index.html',
-    './manifest.json',
+    '/locationfetcher/', // Caches the root of your GitHub Pages project
+    '/locationfetcher/index.html',
+    '/locationfetcher/manifest.json',
     'https://cdn.tailwindcss.com'
 ];
 
