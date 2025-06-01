@@ -37,11 +37,11 @@
         // Register the Service Worker for offline capabilities
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Registering the service worker with an absolute path using window.location.origin
-                // This ensures the browser correctly resolves the service worker's location,
-                // especially in environments where relative paths might be problematic (e.g., blob URLs).
-                const serviceWorkerUrl = window.location.origin + '/service-worker.js';
-                navigator.serviceWorker.register(serviceWorkerUrl, { scope: '/' })
+                // Registering the service worker with a scope that matches the GitHub Pages repository path.
+                // This is crucial for ensuring the service worker controls the correct directory.
+                // The scope should be the base path of your repository on GitHub Pages.
+                const repoPath = '/locationfetcher/'; // Replace with your repository name if different
+                navigator.serviceWorker.register(repoPath + 'service-worker.js', { scope: repoPath })
                     .then(registration => {
                         console.log('Service Worker registered with scope:', registration.scope);
                     })
