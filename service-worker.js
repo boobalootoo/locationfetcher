@@ -1,13 +1,14 @@
 // Define the cache name, incrementing it for new versions to ensure updates
-const CACHE_NAME = 'geolocation-display-v2'; // Incremented cache version
+const CACHE_NAME = 'geolocation-display-v3'; // Incremented cache version again
 
 // List of URLs to cache during installation
 // These paths are now relative to the service worker's scope (e.g., /locationfetcher/)
+// IMPORTANT: 'tailwind.min.css' is now local instead of the CDN URL
 const urlsToCache = [
     '/locationfetcher/', // Caches the root of your GitHub Pages project
     '/locationfetcher/index.html',
     '/locationfetcher/manifest.json',
-    'https://cdn.tailwindcss.com'
+    '/locationfetcher/tailwind.min.css' // Path to your locally hosted Tailwind CSS
 ];
 
 // Install event: Fired when the service worker is installed
