@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Image with Coordinates</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the Inter font and basic centering */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f4f8; /* Light background */
+            margin: 0;
+            padding: 1rem; /* Add some padding for mobile */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl text-center max-w-md w-full border border-gray-200">
+        <h1 class="text-2xl md:text-3xl font-bold mb-4 text-indigo-700">Upload Image with Location</h1>
+
+        <div class="mb-4">
+            <label for="fileInput" class="block text-gray-700 text-sm font-bold mb-2">
+                Select an Image:
+            </label>
+            <input type="file" id="fileInput" accept="image/*" class="block w-full text-sm text-gray-900
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-indigo-50 file:text-indigo-700
+                hover:file:bg-indigo-100 cursor-pointer">
+        </div>
+
+        <button id="uploadButton" onclick="uploadImage()" class="mt-4 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+            Upload Image
+        </button>
+
+        <p id="status" class="mt-4 text-gray-600 text-sm md:text-base"></p>
+    </div>
+
+    <script>
+        // Replace with your actual Google Apps Script Web App URL
+        const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzW8aRLFh9E1WHUuugvvIqOyYBWrMNRmivot0grSBDRb-WX2Se2hCvzIkIdgMaLZG4-8Q/exec";
+
+        async function uploadImage() {
+            const fileInput = document.getElementById('fileInput');
+            const statusDisplay = document.getElementById('status');
+            const uploadButton = document.getElementById('uploadButton');
+
+            if (!fileInput.files.length) {
+                statusDisplay.innerText = "Please select an image first.";
+                statusDisplay.classList.add('text-red-600');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            uploadButton.disabled = true;
+            statusDisplay.innerText = "Getting current location...";
+            statusDisplay.classList.remove('text-red-600', 'text-green-600');
+            statusDisplay.classList.add('text-gray-600');
+
+            let latitude = null;
+            let longitude = null;
+
+            // --- Geolocation Logic ---
+            if (navigator.geolocation) {
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        });
+                    });
+                    latitude = position.coords.latitude.toFixed(2);
+                    longitude = position.coords.longitude.toFixed(2);
+                    statusDisplay.innerText = `Location obtained. Lat: ${latitude}, Lon: ${longitude}. Preparing upload...`;
+                } catch (error) {
+                    let message = 'Unable to retrieve location.';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = 'Location access denied. Please enable location services for this site.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = 'Location information is unavailable.';
+                            break;
+                        case error.TIMEOUT:
+                            message = 'Getting location timed out.';
+                            break;
+                        case error.UNKNOWN_ERROR:
+                            message = 'An unknown error occurred while getting location.';
+                            break;
+                    }
+                    statusDisplay.innerText = `Geolocation error: ${message}`;
+                    statusDisplay.classList.add('text-red-600');
+                    uploadButton.disabled = false;
+                    return;
+                }
+            } else {
+                statusDisplay.innerText = "Geolocation is not supported by this browser. Uploading without coordinates.";
+                statusDisplay.classList.add('text-orange-500');
+            }
+
+            // --- File Reading and Upload Logic ---
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+
+            reader.onloadend = async function () {
+                const base64Data = reader.result.split(',')[1];
+                const originalFileName = file.name;
+                const fileExtension = originalFileName.includes('.') ? '.' + originalFileName.split('.').pop() : '';
+                const fileNameWithoutExtension = originalFileName.replace(fileExtension, '');
+
+                // Construct new filename with coordinates
+                let newFileName = fileNameWithoutExtension;
+                if (latitude !== null && longitude !== null) {
+                    // Replace any non-alphanumeric characters in filename for cleaner appending
+                    const cleanLat = String(latitude).replace(/[^0-9.-]/g, '');
+                    const cleanLon = String(longitude).replace(/[^0-9.-]/g, '');
+                    newFileName += `_Lat${cleanLat}_Lon${cleanLon}`;
+                }
+                newFileName += fileExtension; // Add back the original extension
+
+                statusDisplay.innerText = `Uploading '${newFileName}'...`;
+                statusDisplay.classList.remove('text-red-600', 'text-green-600', 'text-orange-500');
+                statusDisplay.classList.add('text-gray-600');
+
+                try {
+                    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams({
+                            image: base64Data,
+                            mimetype: file.type,
+                            filename: newFileName // Use the new filename with coordinates
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.status === "success") {
+                        statusDisplay.innerText = `Upload successful! Image URL: ${result.url}`;
+                        statusDisplay.classList.add('text-green-600');
+                    } else {
+                        statusDisplay.innerText = `Upload failed: ${result.message || 'Unknown error'}`;
+                        statusDisplay.classList.add('text-red-600');
+                    }
+                } catch (error) {
+                    statusDisplay.innerText = `Network error during upload: ${error.message}`;
+                    statusDisplay.classList.add('text-red-600');
+                } finally {
+                    uploadButton.disabled = false;
+                }
+            };
+        }
+    </script>
+</body>
+</html>
