@@ -2,7 +2,7 @@
     "name": "My Current Location",
     "short_name": "My Location",
     "description": "Displays the current device coordinates.",
-    "start_url": "./index.html",
+    "start_url": "./",
     "display": "standalone",
     "background_color": "#f0f4f8",
     "theme_color": "#4f46e5",
